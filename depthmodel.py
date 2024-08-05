@@ -515,7 +515,7 @@ class Disphead(nn.Module):
 
 
 class NeWCRFDepth(nn.Module):
-    def __init__(self, max_depth=80):
+    def __init__(self, max_depth=85):
         super(NeWCRFDepth, self).__init__()
         self.max_depth = max_depth
         self.swintransformer = SwinTransformer(embedding_dims=[3, 256, 512, 1024], numblocks=[2,2,4,2], output_dims=[256, 512, 1024, 1024], num_heads=[8,8,8,8], patch_size=[4,2,2,2], window_size=[[5,5], [5,5], [6,6], [6,5]], relative_pos_embeddings=True, attn_drop=[0,0,0.20,0.20])
@@ -581,6 +581,8 @@ class NeWCRFDepth(nn.Module):
         print('v shape after convhead: ', v.shape)
         v = self.upsampleLayer(v)
         v = torch.clip(v,min=0,max=self.max_depth)*self.max_depth
+        v = torch.squeeze(v,1)
+        print('v shape: ', v.shape)
         return v
 
 

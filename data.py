@@ -85,44 +85,79 @@ class getDataset(Dataset):
 		self.depth_data = []
 		self.samples = []
 		self.num_orig_samples = 0
+		self.num_depth_data = []
 		if gt_present == True:
-			for filename in os.listdir(depthdatapath):
-				filepath = os.path.join(depthdatapath, filename)
-				#print('filename: ', filename)
-				img = np.array(Image.open(filepath), dtype=int)
-				assert(np.max(img) > 255)
-				img = img.astype(np.float) / 256.
-				img = np.clip(img,0,self.max_depth)
-				#img = cv2.imread(filepath)
-				imgnew = cv2.resize(img, (480, 360), interpolation=cv2.INTER_NEAREST)
-				t = torch.from_numpy(imgnew)
-				self.depth_data.append(t)
-			self.end_idx = int(pct * train_val_split * len(self.depth_data))
-			self.depth_data = self.depth_data[0:self.end_idx]
-			print('num images: ', len(self.depth_data))
-		i = 0
-		for filename in os.listdir(rawdatapath):
-			i = i + 1
-			filepath = os.path.join(rawdatapath, filename)
-			#print('filename: ', filename)
-			img = cv2.imread(filepath)
-			imgnew = cv2.resize(img, (480, 360), interpolation=cv2.INTER_NEAREST)
-			imgnew = imgnew.transpose(2,0,1)
-			t = torch.from_numpy(imgnew)
-			t = self.ConvertImageDtype(t)
-			self.data_orig.append(t)
-			t = self.Normalize(t)
-			self.images.append(t)
-			if gt_present == True:
-				sample = {'image': self.images[i-1], 'gt': self.depth_data[i-1], 'original': self.data_orig[i-1]}
-				self.samples.append(sample)
-				if i == self.end_idx:
-					break
-			else:
-				sample = {'image': self.images[i-1], 'original': self.data_orig[i-1]}
-				self.samples.append(sample)
+			print('depth data')
+			dircount = 0
+			totalcount = 0
+			for dirname in depthdatapath:
+				dirnamerawdata = rawdatapath[dircount]
+				print('dirname: ', dirname)
+				print('dirnamerawdata: ', dirnamerawdata)
+				count = 0
+				for filename in os.listdir(dirname):
+					filepath = os.path.join(dirname, filename)
+					#print('filename: ', filename)
+					img = np.array(Image.open(filepath), dtype=int)
+					assert(np.max(img) > 255)
+					img = img.astype(np.float) / 256.
+					img = np.clip(img,0,self.max_depth)
+					#img = cv2.imread(filepath)
+					imgnew = cv2.resize(img, (480, 360), interpolation=cv2.INTER_NEAREST)
+					t = torch.from_numpy(imgnew)
+					self.depth_data.append(t)
+					filepathrawdata = os.path.join(dirnamerawdata, filename)
+					img = cv2.imread(filepathrawdata)
+					imgnew = cv2.resize(img, (480, 360), interpolation=cv2.INTER_NEAREST)
+					imgnew = imgnew.transpose(2,0,1)
+					t = torch.from_numpy(imgnew)
+					t = self.ConvertImageDtype(t)
+					self.data_orig.append(t)
+					t = self.Normalize(t)
+					self.images.append(t)
+					sample = {'image': self.images[totalcount], 'gt': self.depth_data[totalcount], 'original': self.data_orig[totalcount]}
+					self.samples.append(sample)
+					totalcount += 1
+					count += 1
+				print('num data: ', count)
+				self.num_depth_data.append(count)
+				dircount += 1
+			#self.end_idx = int(pct * train_val_split * len(self.depth_data))
+			#self.depth_data = self.depth_data[0:self.end_idx]
+			print('totalcount: ', totalcount)
+			#print('num depth_data: ', len(self.depth_data))
+			print('len(self.samples): ', len(self.samples))
+		if gt_present == False:
+			print('raw images')
+			dircount = 0
+			totalcount = 0
+			for dirname in rawdatapath:
+				print('dirname: ', dirname)
+				count = 0
+				i = 0
+				for filename in os.listdir(dirname):
+					i = i + 1
+					filepath = os.path.join(dirname, filename)
+					#print('filename: ', filename)
+					img = cv2.imread(filepath)
+					imgnew = cv2.resize(img, (480, 360), interpolation=cv2.INTER_NEAREST)
+					imgnew = imgnew.transpose(2,0,1)
+					t = torch.from_numpy(imgnew)
+					t = self.ConvertImageDtype(t)
+					self.data_orig.append(t)
+					t = self.Normalize(t)
+					self.images.append(t)
+					sample = {'image': self.images[totalcount], 'original': self.data_orig[totalcount]}
+					self.samples.append(sample)
+					totalcount += 1
+					count += 1
+				dircount += 1	
+				print('num images: ', count)
+			print('total images: ', totalcount)
+		self.end_idx = int(pct * len(self.samples))
+		self.samples = self.samples[0:self.end_idx]
 		self.num_orig_samples = len(self.samples)
-
+		print('num_orig_samples: ', self.num_orig_samples)
 
 #			for filename in os.listdir(depthdatapath):
 #				i = i + 1
@@ -204,6 +239,9 @@ class getDataset(Dataset):
 		#print('self.end_idx: ', self.end_idx)
 		random.shuffle(self.samples)
 		print('len(self.samples): ', len(self.samples))
+		self.images = []
+		self.depth_data = []
+		self.data_orig = []
 		#print('self.end_idx + int(data_augment_brightness_color*self.end_idx): ', self.end_idx + int(data_augment_brightness_color*self.end_idx))
 
 
@@ -213,9 +251,6 @@ class getDataset(Dataset):
 
 	def __len__(self):
 		return len(self.samples) # TODO 
-
-	def getWeights(self):
-		return self.weights
 
 
 def get_data_loaders(path,  
