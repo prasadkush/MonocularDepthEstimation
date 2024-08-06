@@ -19,7 +19,7 @@ import matplotlib as mpl
 
 
 
-def compute_metrics(dataset, dataset_name='kitti', imgdir=None, model=None, modelpath=None, modelname='NeWCRFDepth', gt_present=True, save_images=False, criterion=depth_loss, epoch=None):
+def compute_metrics(dataloader, batch_size=4, dataset_name='kitti', imgdir=None, model=None, modelpath=None, modelname='NeWCRFDepth', gt_present=True, save_images=False, criterion=depth_loss, epoch=None):
 	if model == None and modelpath == None:
 		raise ModelPathrequiredError("Both model and modelpath are None")
 	elif model == None:
@@ -31,10 +31,8 @@ def compute_metrics(dataset, dataset_name='kitti', imgdir=None, model=None, mode
 		print('checkpoint[epoch]: ', checkpoint['epoch'])
 		print('checkpoint[loss]: ', checkpoint['loss'])
 	#mean, std = get_mean_std(dataset_name)
-	imgh = dataset.imgh
-	imgw = dataset.imgw
-	batch_size = 8
-	loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
+	#batch_size = 8
+	#loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
 	model.eval()
 	numimgs = 0
 	total_time = 0
@@ -51,7 +49,7 @@ def compute_metrics(dataset, dataset_name='kitti', imgdir=None, model=None, mode
 	totalsqrelerr = 0
 	Normalize = get_inverse_transforms('kitti')
 	with torch.no_grad():
-		for i, data in enumerate(loader):
+		for i, data in enumerate(dataloader):
 			img = data['image']
 			dimg = data['original']
 			start = time.time()
