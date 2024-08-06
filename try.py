@@ -12,24 +12,35 @@ from model_dilated3 import SegmentationDilated as SegmentationDil3
 from model_dilated4 import SegmentationDilated as SegmentationDil4
 from model_dilated5 import SegmentationDilated as SegmentationDil5
 from labels import mylabels, Label, id2myid, id2label
+from depthmodel import SwinTransformer, NeWCRFDepth
+from data_config import rawdatalist, depthdatalist, valrawdatalist, valdepthdatalist
 
-datapath = 'C:/Users/Kush/OneDrive/Desktop/CV-Ml/datasets/data_semantics/training'
-datapathcam = 'C:/Users/Kush/OneDrive/Desktop/CV-ML/datasets/SegNet-Tutorial-master/SegNet-Tutorial-master/CamVid'
-#dataset = getDataset(datapathcam)
-dataset = getDataset(datapathcam, dataset='CamVid', data_augment=False, gt_present=True, mode='train')
+
+
 
 #model = SegnetSkip3(kernel_size=7, padding=3, out_channels=12)
 #model = SegmentationDil(kernel1_size=7, kernel2_size=3, kernel3_size=5, padding=3)
 #model = SegmentationDil2(kernel1_size=7, kernel2_size=3, kernel3_size=5, padding=3)
-model = SegmentationDil5(kernel1_size=7, kernel2_size=3, kernel3_size=5, padding=3)
+#model = SegmentationDil5(kernel1_size=7, kernel2_size=3, kernel3_size=5, padding=3)
 
-#resultsdir='results/trial8_CamVid'
-resultsdir = 'results/trial13_CamVid_Dil5'
+model = NeWCRFDepth()
 
-modelpath = resultsdir + '/bestlosssegnetmodelnew.pt'
+dataset = getDataset(rawdatapath=rawdatalist, depthdatapath=depthdatalist, max_depth=85, pct=1.0, train_val_split=1.0, dataset='kitti', data_augment_flip=0, data_augment_brightness_color=0.20, gt_present=True, mode='train')
 
-train(dataset, model, batch_size=4, resume_training=True, useWeights=False, modelpath=modelpath, resultsdir=resultsdir, pretrained_encoder=False)
+valdataset = getDataset(rawdatapath=valrawdatalist, depthdatapath=valdepthdatalist, max_depth=85, pct=1.0, train_val_split=1.0, dataset='kitti', data_augment_flip=0, data_augment_brightness_color=0.0, gt_present=True, mode='train')
 
+resultsdir = 'results/trial0'
+
+batch_size = 4
+
+batch_size_val = 4
+
+data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
+
+val_data_loader = DataLoader(valdataset, batch_size=batch_size_val, shuffle=True, pin_memory=True)
+
+train(data_loader, val_data_loader, model, epochs=60, batch_size=batch_size, batch_size_val=batch_size_val, shuffle=True, val_dataset=None, modelpath=None, bestmodelpath=None, resume_training=False, useWeights=False, resultsdir=resultsdir,
+    layer_wise_training=False)
 #loader = DataLoader(dataset, batch_size=4, shuffle=True, pin_memory=True)
 
 #loaderiter = iter(loader)
