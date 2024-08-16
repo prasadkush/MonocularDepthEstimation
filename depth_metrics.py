@@ -8,7 +8,7 @@ eps = 1e-7
 
 def abs_rel_error(pred, gt):
 	#abs_rel_error = torch.mean(torch.abs(pred -gt/(gt + eps)))
-	abs_rel_error = torch.abs(pred -gt/(gt + eps))
+	abs_rel_error = torch.abs((pred -gt)/(gt + eps))
 	abs_rel_error[gt == 0] = 0
 	num_pixels = torch.sum(gt != 0, dim=(1,2))
 	abs_rel_error = torch.mean(torch.sum(abs_rel_error, dim=(1,2))/num_pixels)

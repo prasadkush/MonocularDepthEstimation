@@ -119,7 +119,7 @@ class MultiheadSelfAttentionblock(nn.Module):
     def forward(self, x):
         out = self.layernorm(x)
         out, _ = self.multiheadattention(out, out, out, need_weights=False)
-        print('out shape after multiheadattention: ', out.shape)
+        #print('out shape after multiheadattention: ', out.shape)
         out = out + x
         return out
 
@@ -144,7 +144,7 @@ class ShiftedWindowMSA(nn.Module):
         self.window_sizey = window_sizey
         self.shifted = shifted
         self.linear1 = nn.Linear(emb_size, 3*emb_size)
-        self.pos_embeddings = nn.Parameter(torch.randn(window_sizex*2- 1, window_sizey*2 - 1))
+        self.pos_embeddings = nn.Parameter(torch.zeros(window_sizex*2- 1, window_sizey*2 - 1))
         self.indices = torch.from_numpy(np.indices((window_sizex,window_sizey))).permute((1,2,0)).reshape((window_sizex*window_sizey,2))
         self.rel_indices = self.indices[None,:,:] - self.indices[:,None,:] + torch.tensor([window_sizex-1, window_sizey-1])
         self.rel_pos_embeddings = relative_pos_embeddings
@@ -219,7 +219,7 @@ class ShiftedWindowMA(nn.Module):
         self.window_sizey = window_sizey
         self.shifted = shifted
         self.linearqk = nn.Linear(emb_size, 2*emb_size)
-        self.pos_embeddings = nn.Parameter(torch.randn(window_sizex*2- 1, window_sizey*2 - 1))
+        self.pos_embeddings = nn.Parameter(torch.zeros(window_sizex*2- 1, window_sizey*2 - 1))
         self.indices = torch.from_numpy(np.indices((window_sizex,window_sizey))).permute((1,2,0)).reshape((window_sizex*window_sizey,2))
         self.rel_indices = self.indices[None,:,:] - self.indices[:,None,:] + torch.tensor([window_sizex-1, window_sizey-1])
         self.rel_pos_embeddings = relative_pos_embeddings
@@ -326,7 +326,7 @@ class patchmerging(nn.Module):
 
     def forward(self, x):
         out = rearrange(x, 'b (h h1) (w w1) c -> b h w (h1 w1 c)', h1=self.patch_size, w1=self.patch_size)
-        print('after rearrange out shape: ', out.shape)
+        #print('after rearrange out shape: ', out.shape)
         out = self.Linearlayer(out)
         return out
 
@@ -340,13 +340,13 @@ class stageblock(nn.Module):
         self.output_dims = output_dims
         self.hidden_dims = 2*self.output_dims
         self.numblocks = numblocks
-        self.transformerblocks = [SwinTransformerblock(self.output_dims, self.hidden_dims, num_heads, window_sizex=window_sizex, window_sizey=window_sizey, shifted_window=(i+1)%2, relative_pos_embeddings=relative_pos_embeddings, attn_drop=attn_drop) for i in range(numblocks)]
+        self.transformerblocks = nn.ModuleList([SwinTransformerblock(self.output_dims, self.hidden_dims, num_heads, window_sizex=window_sizex, window_sizey=window_sizey, shifted_window=(i+1)%2, relative_pos_embeddings=relative_pos_embeddings, attn_drop=attn_drop) for i in range(numblocks)])
         #self.TransformerblockSWMSA2 = SwinTransformerblock(embedding_dims, hidden_dims, num_heads, window_size=window_size, shifted_window=True)
         #self.TransformerblockWMSA2 = SwinTransformerblock(embedding_dims, hidden_dims, num_heads, window_size=window_size, shifted_window=False)        
 
     def forward(self, x):
         out = self.patchmerging(x)
-        print('after patch merging out shape: ', out.shape)
+        #print('after patch merging out shape: ', out.shape)
         for i in range(self.numblocks):
             out = self.transformerblocks[i](out)
             #print('out shape: ', out.shape)
@@ -376,7 +376,7 @@ class SwinTransformer(nn.Module):
     def forward(self, x):
         #out = rearrange(x, 'b (h h1) (w w1) c -> b h w (h1 w1 c)', h1=self.window_size, w1=self.window_size)
         x = x.permute((0,2,3,1))
-        print('x shape: ', x.shape)
+        #print('x shape: ', x.shape)
         #out = rearrange(x, 'b c (h h1) (w w1) -> b h w (h1 w1 c)', h1=4, w1=4)
         #print('x[0,:,0:4,0:4]: ', x[0,:,0:4,0:4])
         #print('out[0,0,0,:]: ', out[0,0,0,:])
@@ -438,7 +438,7 @@ class NeWCRFblock(nn.Module):
         #    self.v_proj = nn.Linear(v_dim, embed_dim)
         #    self.v_dim = embed_dim
         assert num_layers % 2 == 0, 'num_layers in NeWCRFblock should be even'
-        self.layers = [NeWCRFlayer(self.embed_dim, self.embed_dim, self.mlp_hidden_dims, num_heads=num_heads, shifted=(i+1)%2, rel_pos_embeddings=relative_pos_embeddings, window_sizex=window_sizex, window_sizey=window_sizey, attn_drop=attn_drop) for i in range(num_layers)]
+        self.layers = nn.ModuleList([NeWCRFlayer(self.embed_dim, self.embed_dim, self.mlp_hidden_dims, num_heads=num_heads, shifted=(i+1)%2, rel_pos_embeddings=relative_pos_embeddings, window_sizex=window_sizex, window_sizey=window_sizey, attn_drop=attn_drop) for i in range(num_layers)])
         self.norm = nn.LayerNorm(final_v_dim)
 
 
@@ -448,21 +448,21 @@ class NeWCRFblock(nn.Module):
         x = self.x_proj(x)
         v = self.v_proj(v)
         end_time = time()
-        print(' time NeWCRF block x, v conv: ', end_time - start_time)
+        #print(' time NeWCRF block x, v conv: ', end_time - start_time)
         v = v.permute((0,2,3,1))
         x = x.permute((0,2,3,1))
-        print('NeWCRFblock x shape: ', x.shape)
-        print('NeWCRFblock v shape: ', v.shape)
+        #print('NeWCRFblock x shape: ', x.shape)
+        #print('NeWCRFblock v shape: ', v.shape)
         for layer in self.layers:
             start_time = time()
             x = layer(x,v)
             end_time = time()
-            print('time NeWCRFlayer: ', end_time - start_time)
-            print('NeWCRFblock x shape: ', x.shape)
+            #print('time NeWCRFlayer: ', end_time - start_time)
+            #print('NeWCRFblock x shape: ', x.shape)
         #if self.embed_dim != self.final_v_dim:
         x = self.v_proj2(x)
         x = self.norm(x)
-        print('NeWCRFblock final x shape: ', x.shape)
+        #print('NeWCRFblock final x shape: ', x.shape)
         return x
 
 class PSPhead(nn.Module):
@@ -487,7 +487,7 @@ class PSPhead(nn.Module):
             ppm_out = interpolate(ppm(x), size=(x.shape[2], x.shape[3]), mode='bilinear', align_corners=None)
             ppm_outs.append(ppm_out)
         ppm_outs = torch.cat(ppm_outs, dim=1)
-        print('ppm_outs shape: ', ppm_outs.shape)
+        #print('ppm_outs shape: ', ppm_outs.shape)
         ppm_head_out = self.bottleneck(ppm_outs)
         #ppm_head_out = ppm_head_out.permute((0,2,3,1))
         #print('ppm_head_out shape: ', ppm_head_out.shape)
@@ -499,11 +499,12 @@ class Disphead(nn.Module):
         assert num_layers == 1 or num_layers == 2, 'num_layers can be either 1 or 2'
         self.num_layers = num_layers
         if self.num_layers == 1:
-            self.conv1 = nn.Sequential(nn.Conv2d(input_features, 1, kernel_size=3, padding=1), nn.BatchNorm2d(1), nn.ReLU())
+            self.conv1 = nn.Sequential(nn.Conv2d(input_features, 1, kernel_size=3, padding=1), nn.PReLU(num_parameters=1, init=0.25, device=None, dtype=None))
+            self.conv1 = nn.Sequential(nn.Conv2d(input_features, 1, kernel_size=3, padding=1), nn.Sigmoid()) 
         elif self.num_layers == 2:
             assert midlevelfeatures != None, 'midlevelfeatures not provided'
-            self.conv1 = nn.Sequential(nn.Conv2d(input_features, midlevelfeatures, kernel_size=3, padding=1), nn.BatchNorm2d(midlevelfeatures), nn.ReLU())
-            self.conv2 = nn.Sequential(nn.Conv2d(midlevelfeatures, 1, kernel_size=3, padding=1), nn.BatchNorm2d(1), nn.ReLU())
+            self.conv1 = nn.Sequential(nn.Conv2d(input_features, midlevelfeatures, kernel_size=3, padding=1), nn.PReLU(num_parameters=1, init=0.25, device=None, dtype=None))
+            self.conv2 = nn.Sequential(nn.Conv2d(midlevelfeatures, 1, kernel_size=3, padding=1), nn.PReLU(num_parameters=1, init=0.25, device=None, dtype=None))
 
     def forward(self, x):
         if self.num_layers == 1:
@@ -531,58 +532,60 @@ class NeWCRFDepth(nn.Module):
         start_time = time()
         trans_outs = self.swintransformer(x)
         end_time = time()
-        print('swintransformer time: ', end_time - start_time)
-        print('trans_outs[0].shape: ', trans_outs[0].shape)
-        print('trans_outs[1].shape: ', trans_outs[1].shape)
-        print('trans_outs[2].shape: ', trans_outs[2].shape)
-        print('trans_outs[3].shape: ', trans_outs[3].shape)
+        #print('swintransformer time: ', end_time - start_time)
+        #print('trans_outs[0].shape: ', trans_outs[0].shape)
+        #print('trans_outs[1].shape: ', trans_outs[1].shape)
+        #print('trans_outs[2].shape: ', trans_outs[2].shape)
+        #print('trans_outs[3].shape: ', trans_outs[3].shape)
         start_time = time()
         ppm_head_out = self.PPMhead(trans_outs[3])
         end_time = time()
-        print('ppmhead time: ', end_time - start_time)
-        print('ppm_head_out shape: ', ppm_head_out.shape)
+        #print('ppmhead time: ', end_time - start_time)
+        #print('ppm_head_out shape: ', ppm_head_out.shape)
         start_time = time()
         v = self.crf1(trans_outs[3], ppm_head_out)
         v = v.permute((0,3,1,2))
         end_time = time()
-        print('time crf 1: ', end_time - start_time)
-        print('v shape after crf1: ', v.shape)
+        #print('time crf 1: ', end_time - start_time)
+        #print('v shape after crf1: ', v.shape)
         v = nn.PixelShuffle(2)(v)
-        print('v shape after PixelShuffle: ', v.shape)
+        #print('v shape after PixelShuffle: ', v.shape)
         #v = v.permute((0,2,3,1))
         start_time = time()
         v = self.crf2(trans_outs[2], v)
         v = v.permute((0,3,1,2))
         end_time = time()
-        print('time crf 2: ', end_time - start_time)
-        print('v shape after crf2: ', v.shape)
+        #print('time crf 2: ', end_time - start_time)
+        #print('v shape after crf2: ', v.shape)
         v = nn.PixelShuffle(2)(v)
-        print('v shape after PixelShuffle: ', v.shape)
+        #print('v shape after PixelShuffle: ', v.shape)
         v = interpolate(v, size=(45, 60), mode='bilinear', align_corners=True)
-        print('v shape after crf 2 interpolate: ', v.shape)
+        #print('v shape after crf 2 interpolate: ', v.shape)
         #v = v.permute((0,2,3,1))\
         start_time = time()
         v = self.crf3(trans_outs[1], v)
         v = v.permute((0,3,1,2))
         end_time = time()
-        print('time crf 3: ', end_time - start_time)
-        print('v shape after crf3: ', v.shape)
+        #print('time crf 3: ', end_time - start_time)
+        #print('v shape after crf3: ', v.shape)
         v = nn.PixelShuffle(2)(v)
-        print('v shape after PixelShuffle: ', v.shape)
+        #print('v shape after PixelShuffle: ', v.shape)
         #v = v.permute((0,2,3,1))
         start_time = time()
         v = self.crf4(trans_outs[0], v)
         end_time = time()
-        print('time crf 4: ', end_time - start_time)
-        print('v shape after crf4: ', v.shape)
+        #print('time crf 4: ', end_time - start_time)
+        #print('v shape after crf4: ', v.shape)
         v = v.permute((0,3,1,2))
         v = self.upsampleLayer(v)
         v = self.convhead(v)
-        print('v shape after convhead: ', v.shape)
+        #print('v shape after convhead: ', v.shape)
         v = self.upsampleLayer(v)
-        v = torch.clip(v,min=0,max=self.max_depth)*self.max_depth
+        v = torch.abs(v)
+        v = torch.clip(v,min=0,max=1)*self.max_depth
+        #v = v*self.max_depth
         v = torch.squeeze(v,1)
-        print('v shape: ', v.shape)
+        #print('v shape: ', v.shape)
         return v
 
 

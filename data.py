@@ -18,8 +18,10 @@ def get_inverse_transforms(dataset='kitti'):
 	Get inverse transforms to undo data normalization
 	"""
 	if dataset == 'kitti':
-		inv_normalize_color = transforms.Normalize((-0.36878809/0.31531613, -0.36893588/0.31266074, -0.36062746/0.31447971),
-	(1/0.31531613, 1/0.31266074, 1/0.314479710))
+		#inv_normalize_color = transforms.Normalize((-0.36296803/0.32004617, -0.38505139/0.32055016, -0.3728268/0.31917551),
+	#(1/0.32004617, 1/0.32055016, 1/0.31917551))
+		inv_normalize_color = transforms.Normalize((-0.35173432/0.31663645, -0.37650287/0.32146303, -0.36731447/0.32333452),
+	(1/0.31663645, 1/0.32146303, 1/0.32333452))
 	#inv_normalize_depth = transforms.Normalize(
 	#mean=[-0.480/0.295],
 	#std=[1/0.295]
@@ -36,6 +38,12 @@ def get_tensor_to_image_transforms(dataset='kitti'):
 	return (transforms.Compose([inv_normalize_color,tensor_to_image]),
 			transforms.Compose([inv_normalize_depth,tensor_to_image]))
 
+#mean:  [0.36296803 0.38505139 0.3728268 ]   # std, mean of kitti dataset of rawdatapath1 to rawdatapath6
+#std:  [0.32004617 0.32055016 0.31917551]
+
+#mean:  [0.35173432 0.37650287 0.36731447]  #std, mean of kitti dataset of rawdatapath1 to rawdatapath5
+#std:  [0.31663645 0.32146303 0.32333452]
+
 #mean:  [0.38399986 0.39878138 0.3793309 ]
 #std:  [0.32906724 0.31968708 0.31093021]
 
@@ -45,10 +53,15 @@ def get_tensor_to_image_transforms(dataset='kitti'):
 
 def get_color_transform(dataset='kitti'):
 	if dataset == 'kitti':
+		#color_transform = transforms.Compose([
+		#transforms.ConvertImageDtype(torch.float),
+		#transforms.Normalize((0.36296803, 0.38505139, 0.3728268), (0.32004617, 0.32055016, 0.31917551)),
+		#])
 		color_transform = transforms.Compose([
 		transforms.ConvertImageDtype(torch.float),
-		transforms.Normalize((0.38399, 0.39878, 0.37933), (0.32906, 0.31968, 0.3109)),
+		transforms.Normalize((0.35173432, 0.37650287, 0.36731447), (0.31663645, 0.32146303, 0.32333452)),
 		])
+
 	elif dataset == 'CamVid':
 		color_transform = transforms.Compose([
 		transforms.ConvertImageDtype(torch.float),
@@ -66,15 +79,16 @@ class getDataset(Dataset):
 		start_idx (int): start of index to use in data list  
 		end_idx (int): end of i
 	"""
-	def __init__(self, rawdatapath=None, depthdatapath=None, max_depth=80, pct=1.0, train_val_split=1.0, dataset='kitti', data_augment_flip=0, data_augment_brightness_color=0, gt_present=True, mode='train'):
+	def __init__(self, rawdatapath=None, depthdatapath=None, max_depth=85, pct=1.0, train_val_split=1.0, dataset='kitti', data_augment_flip=0, data_augment_brightness_color=0, gt_present=True, mode='train'):
 		self.start_idx = 0
-		self.color_transform = transforms.Compose([
-		transforms.ConvertImageDtype(torch.float),
-		transforms.Normalize((0.38399, 0.39878, 0.37933), (0.32906, 0.31968, 0.3109)),
-		])
+		#self.color_transform = transforms.Compose([
+		#transforms.ConvertImageDtype(torch.float),
+		#transforms.Normalize((0.36296803, 0.38505139, 0.3728268), (0.32004617, 0.32055016, 0.31917551)),
+		#])
 		self.ConvertImageDtype = transforms.ConvertImageDtype(torch.float)
 		if dataset == 'kitti':
-			self.Normalize = transforms.Normalize((0.36878809, 0.36893588, 0.36062746),  (0.31531613, 0.31266074, 0.31447971))
+			#self.Normalize = transforms.Normalize((0.36296803, 0.38505139, 0.3728268),  (0.32004617, 0.32055016, 0.31917551))
+			self.Normalize = transforms.Normalize((0.35173432, 0.37650287, 0.36731447), (0.31663645, 0.32146303, 0.32333452))
 	   # self.data = []
 		self.data_orig = []
 		self.images = []
@@ -154,6 +168,7 @@ class getDataset(Dataset):
 				dircount += 1	
 				print('num images: ', count)
 			print('total images: ', totalcount)
+		random.shuffle(self.samples)
 		self.end_idx = int(pct * len(self.samples))
 		self.samples = self.samples[0:self.end_idx]
 		self.num_orig_samples = len(self.samples)
@@ -193,9 +208,18 @@ class getDataset(Dataset):
 				augorig = sample['original']
 				brighness_aug = 0.8 + 0.3*torch.rand(1)
 				augimage = inv_transform(sample['image'])
+				img2 = (augimage.permute((1,2,0))).numpy()
 				augimage = brighness_aug*augimage
 				color_aug = 0.8 + 0.3*torch.rand((3,1,1))
 				augimage = color_aug*augimage
+				#augimg2 = (augimage.permute((1,2,0))).numpy()
+				#print('augimg2 shape:', augimg2.shape)
+				#print('img2 shape: ', img2.shape)
+				#print('augimg2[0:5,0:5,:]: ', augimg2[0:5,0:5,:])
+				#print('img2[0:5,0:5,:]: ', img2[0:5,0:5,:])
+				#imgnew = np.concatenate((augimg2, img2), axis=1)
+				#cv2.imshow('imgnew: ', imgnew)
+				#cv2.waitKey(0)
 				augimage = torch.clip(augimage, min=0, max=1)
 				augimage = self.Normalize(augimage)
 				augorig = brighness_aug*augorig
@@ -211,7 +235,7 @@ class getDataset(Dataset):
 		#self.end_idx = len(self.samples) - 1
 
 		if data_augment_flip > 0:
-			auginds = random.sample(range(self.num_orig_samples), int(min(data_augment,1)*self.num_orig_samples))
+			auginds = random.sample(range(self.num_orig_samples), int(min(data_augment_flip,1)*self.num_orig_samples))
 			#auginds = np.random.randint(0,self.end_idx, size=int(0.20*self.end_idx))
 			for i in range(len(auginds)):
 				sample = self.samples[auginds[i]]

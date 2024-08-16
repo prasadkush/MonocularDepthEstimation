@@ -18,7 +18,7 @@ class depth_loss(nn.Module):
 	def forward(self, output, gt):
 		deltad = torch.log((output + eps)/(gt + eps))
 		num_pixels = torch.sum(gt != 0, dim=(1,2))
-		print('num_pixels: ', num_pixels)
+		#print('num_pixels: ', num_pixels)
 		#breakpoint()
 		#print('deltad/num_pixels: ', deltad/num_pixels)
 		deltad[gt == 0] = 0

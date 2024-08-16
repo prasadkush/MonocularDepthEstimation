@@ -19,7 +19,11 @@ depthdatapath4 = "D:/data_depth_annotated/train/2011_09_29_drive_0004_sync/proj_
 
 rawdatapath5 = "D:/kitti raw images/2011_09_26_drive_0009_sync/2011_09_26/2011_09_26_drive_0009_sync/image_02/data"
 
+rawdatapath6 = "D:/kitti raw images/2011_09_26_drive_0017_sync/2011_09_26/2011_09_26_drive_0017_sync/image_02/data"
+
 depthdatapath5 = "D:/data_depth_annotated/train/2011_09_26_drive_0009_sync/proj_depth/groundtruth/image_02"
+
+depthdatapath6 = "D:/data_depth_annotated/train/2011_09_26_drive_0017_sync/proj_depth/groundtruth/image_02"
 
 valrawdatapath1 = "D:/kitti raw images/val/2011_09_26_drive_0013_sync/2011_09_26/2011_09_26_drive_0013_sync/image_02/data"
 
