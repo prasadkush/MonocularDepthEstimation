@@ -13,6 +13,8 @@ from model_dilated4 import SegmentationDilated as SegmentationDil4
 from model_dilated5 import SegmentationDilated as SegmentationDil5
 from labels import mylabels, Label, id2myid, id2label
 from depthmodel import SwinTransformer, NeWCRFDepth
+from depthmodel2 import NeWCRFDepth as NeWCRFDepth2
+from losses import depth_loss
 from data_config import rawdatalist, depthdatalist, valrawdatalist, valdepthdatalist
 
 
@@ -25,13 +27,17 @@ from data_config import rawdatalist, depthdatalist, valrawdatalist, valdepthdata
 
 model = NeWCRFDepth()
 
+criterion = depth_loss(lambda_=0.55, alpha=10)
+
 dataset = getDataset(rawdatapath=rawdatalist, depthdatapath=depthdatalist, max_depth=85, pct=1.0, train_val_split=1.0, dataset='kitti', data_augment_flip=0, data_augment_brightness_color=0.20, gt_present=True, mode='train')
 
 valdataset = getDataset(rawdatapath=valrawdatalist, depthdatapath=valdepthdatalist, max_depth=85, pct=0.30, train_val_split=1.0, dataset='kitti', data_augment_flip=0, data_augment_brightness_color=0.0, gt_present=True, mode='train')
 
-resultsdir = 'results/trial3'
+resultsdir = 'results/trial5'
 
-modelpath='results/trial0/bestlossdepthmodelnew.pt'
+#resultsdiropen = 'results/trial5'
+
+modelpath='results/trial5/bestlossdepthmodelnew.pt'
 
 #bestmodelpath = 'results/trial0//bestvallossdepthmodelnew.pt'
 
@@ -49,8 +55,7 @@ val_data_loader = DataLoader(valdataset, batch_size=batch_size_val, shuffle=True
 print('len(dataset): ', len(dataset))
 print('len(data_loader.dataset): ', len(data_loader.dataset))
 
-train(data_loader, val_data_loader, model, epochs=60, batch_size=batch_size, batch_size_val=batch_size_val, dataset_name='kitti', shuffle=True, val_dataset=None, modelpath=None, resume_training=False, useWeights=False, resultsdir=resultsdir,
- resultsdiropen=None, layer_wise_training=False)
+train(data_loader, val_data_loader, model, criterion, epochs=60, batch_size=batch_size, batch_size_val=batch_size_val, dataset_name='kitti', shuffle=True, resume_training=True, resultsdir=resultsdir, resultsdiropen=resultsdir, modelpath=modelpath, initialize_from_model=False)
 #loader = DataLoader(dataset, batch_size=4, shuffle=True, pin_memory=True)
 
 #loaderiter = iter(loader)

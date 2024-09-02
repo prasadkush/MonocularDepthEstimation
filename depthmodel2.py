@@ -111,10 +111,10 @@ class MLPblock(nn.Module):
         super(MLPblock, self).__init__()
         self.embedding_dims = embedding_dims
         self.hidden_dims = hidden_dims
-        self.layerNorm = nn.LayerNorm(embedding_dims)   
-        self.mlplayer = nn.Sequential(nn.Linear(in_features = embedding_dims, out_features = hidden_dims), nn.PReLU(num_parameters=1, init=0.25, device=None, dtype=None),
+        self.layerNorm = nn.LayerNorm(embedding_dims)
+        self.mlplayer = nn.Sequential(nn.Linear(in_features = embedding_dims, out_features = hidden_dims), nn.GELU(),
             nn.Dropout(p=0.30), nn.Linear(in_features = hidden_dims, out_features = embedding_dims), nn.Dropout(p=0.30))
-        # changed from GELU to PRELU
+
     def forward(self, x):
         out = self.layerNorm(x)
         out = self.mlplayer(out) + x
@@ -550,10 +550,10 @@ class NeWCRFblock(nn.Module):
 class PSPhead(nn.Module):
     def __init__(self, input_dim=1024, output_dims=256, final_output_dims=1024, pool_scales=[1,2,3,6]):
         super(PSPhead, self).__init__()
-        self.ppm_modules = nn.ModuleList([nn.Sequential(nn.AdaptiveAvgPool2d(pool), nn.Conv2d(input_dim, output_dims, kernel_size=1),
+        self.ppm_modules = [nn.Sequential(nn.AdaptiveAvgPool2d(pool), nn.Conv2d(input_dim, output_dims, kernel_size=1),
             nn.BatchNorm2d(output_dims),
             #nn.ReLU())
-            nn.PReLU(num_parameters=1, init=0.25, device=None, dtype=None)) for pool in pool_scales])
+            nn.PReLU(num_parameters=1, init=0.25, device=None, dtype=None)) for pool in pool_scales]
 
         self.bottleneck = nn.Sequential(nn.Conv2d(input_dim + output_dims*len(pool_scales), final_output_dims, kernel_size=3, padding=1),
             nn.BatchNorm2d(final_output_dims),
@@ -581,7 +581,7 @@ class Disphead(nn.Module):
         assert num_layers == 1 or num_layers == 2, 'num_layers can be either 1 or 2'
         self.num_layers = num_layers
         if self.num_layers == 1:
-            #self.conv1 = nn.Sequential(nn.Conv2d(input_features, 1, kernel_size=3, padding=1), nn.PReLU(num_parameters=1, init=0.50, device=None, dtype=None))
+            self.conv1 = nn.Sequential(nn.Conv2d(input_features, 1, kernel_size=3, padding=1), nn.PReLU(num_parameters=1, init=0.25, device=None, dtype=None))
             self.conv1 = nn.Sequential(nn.Conv2d(input_features, 1, kernel_size=3, padding=1), nn.Sigmoid()) 
         elif self.num_layers == 2:
             assert midlevelfeatures != None, 'midlevelfeatures not provided'
@@ -601,12 +601,13 @@ class NeWCRFDepth(nn.Module):
     def __init__(self, max_depth=85):
         super(NeWCRFDepth, self).__init__()
         self.max_depth = max_depth
-        self.swintransformer = SwinTransformer(embedding_dims=[3, 256, 512, 1024], numblocks=[2,2,4,2], output_dims=[256, 512, 1024, 1024], num_heads=[8,8,8,8], patch_size=[4,2,2,2], window_size=[[5,5], [5,5], [6,6], [6,5]], relative_pos_embeddings=True, attn_drop=[0,0,0.20,0.20])
+        self.swintransformer = SwinTransformer(embedding_dims=[3, 256, 512, 1024], numblocks=[2,2,4,2], output_dims=[256, 512, 1024, 1024], num_heads=[8,8,8,8], patch_size=[4,2,2,2], window_size=[[5,5], [5,5], [6,6], [6,5]], relative_pos_embeddings=False, attn_drop=[0,0,0.20,0.20])
         self.PPMhead = PSPhead(input_dim=1024, output_dims=256, final_output_dims=1024)
-        self.crf1 = NeWCRFblock(1024, 1024, 1024, final_v_dim=1024, num_layers=2, num_heads=16, proj_v=False, relative_pos_embeddings=True, window_sizex=6, window_sizey=5)
-        self.crf2 = NeWCRFblock(1024, 256, 1024, final_v_dim=1024, num_layers=2, num_heads=16, proj_v=False, relative_pos_embeddings=True, window_sizex=6, window_sizey=5)
-        self.crf3 = NeWCRFblock(512, 256, 256, final_v_dim=256, num_layers=2, num_heads=16, proj_v=False, relative_pos_embeddings=True, window_sizex=5, window_sizey=5)
-        self.crf4 = NeWCRFblock(256, 64, 64, final_v_dim=64, num_layers=2, num_heads=8, proj_v=False, relative_pos_embeddings=True, window_sizex=5, window_sizey=5)
+        self.crf1 = NeWCRFblock(1024, 1024, 1024, final_v_dim=1024, num_layers=2, num_heads=16, proj_v=False, relative_pos_embeddings=False, window_sizex=6, window_sizey=5)
+        self.crf2 = NeWCRFblock(1024, 256, 1024, final_v_dim=1024, num_layers=2, num_heads=16, proj_v=False, relative_pos_embeddings=False, window_sizex=6, window_sizey=5)
+        self.crf3 = NeWCRFblock(512, 256, 256, final_v_dim=256, num_layers=2, num_heads=16, proj_v=False, relative_pos_embeddings=False, window_sizex=5, window_sizey=5)
+        self.crf4 = NeWCRFblock(256, 64, 64, final_v_dim=64, num_layers=2, num_heads=8, proj_v=False, relative_pos_embeddings=False, window_sizex=5, window_sizey=5)
+        self.convup2 = nn.Sequential(nn.Conv2d(256,1024,kernel_size=1), nn.Dropout(0.20), nn.BatchNorm2d(1024))
         self.upsampleLayer = nn.Upsample(scale_factor=2,mode='bilinear')
         self.convhead = Disphead(64, num_layers=1)
 
@@ -634,7 +635,7 @@ class NeWCRFDepth(nn.Module):
         #print('v shape after PixelShuffle: ', v.shape)
         #v = v.permute((0,2,3,1))
         start_time = time()
-        v = self.crf2(trans_outs[2], v)
+        v = (self.convup2(v).permute((0,2,3,1)) + self.crf2(trans_outs[2], v))/2
         v = v.permute((0,3,1,2))
         end_time = time()
         #print('time crf 2: ', end_time - start_time)
@@ -645,7 +646,7 @@ class NeWCRFDepth(nn.Module):
         #print('v shape after crf 2 interpolate: ', v.shape)
         #v = v.permute((0,2,3,1))\
         start_time = time()
-        v = self.crf3(trans_outs[1], v)
+        v = (v.permute((0,2,3,1)) + self.crf3(trans_outs[1], v))/2
         v = v.permute((0,3,1,2))
         end_time = time()
         #print('time crf 3: ', end_time - start_time)
@@ -654,7 +655,7 @@ class NeWCRFDepth(nn.Module):
         #print('v shape after PixelShuffle: ', v.shape)
         #v = v.permute((0,2,3,1))
         start_time = time()
-        v = self.crf4(trans_outs[0], v)
+        v = (v.permute((0,2,3,1)) + self.crf4(trans_outs[0], v))/2
         end_time = time()
         #print('time crf 4: ', end_time - start_time)
         #print('v shape after crf4: ', v.shape)

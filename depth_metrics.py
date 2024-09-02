@@ -29,3 +29,22 @@ def sq_rel_error(pred, gt):
 	num_pixels = torch.sum(gt != 0, dim=(1,2))
 	sq_rel_error = torch.mean(torch.sum(sq_rel_error, dim=(1,2))/num_pixels)
 	return sq_rel_error
+
+def error_less_than(pred, gt, value=1.25):
+	error = torch.abs(pred - gt)
+	delta = torch.sum(torch.logical_and(error < value, gt != 0), dim=(1,2))/torch.sum(gt != 0, dim=(1,2))
+	delta = torch.mean(delta)
+	return delta
+
+def norm_error(pred, gt, norm = 2):
+	error = pred-gt
+	error[gt == 0] = 0
+	num_pixels = torch.sum(gt != 0, dim=(1,2))
+	if norm == 2:
+		error = torch.mean(torch.sqrt(torch.sum(torch.square(error), dim=(1,2)))/num_pixels)
+	elif norm == 1:
+		error = torch.mean(torch.sum(torch.abs(error), dim=(1,2))/num_pixels)
+	else: 
+		print('error norm not specified.')
+		error = -1
+	return error
