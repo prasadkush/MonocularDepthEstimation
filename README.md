@@ -19,7 +19,7 @@ The model in depthmodel.py was trained on a subset (1846 + augmented images) of 
 <br/><br/>
 
 
-|  | Result |
+| Metric  | Value |
 | --- | --- |
 | absolute relative error on validation dataset| 0.2034 |
 
