@@ -13,8 +13,15 @@ This repository contains a Pytorch implementation of monocular depth estimation 
 1. Change the values of depthdatalist, rawdatalist, valdepthdatalist, valrawdatalist and their respective elements in data_config.py.
 2. Run python main.py.
 
-## Results
+## Results on Kitti dataset 
 
+The model in depthmodel.py was trained on a subset (1846 + augmented images) of Kitti monocular depth estimation dataset. The model was trained for 16 epochs and tested on a validation set of 108 images.
+<br/><br/>
+
+
+|  | Result |
+| --- | --- |
+| absolute relative error on validation dataset| 0.2034 |
 
 
 ## References
