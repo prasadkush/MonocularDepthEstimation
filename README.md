@@ -16,7 +16,7 @@ This repository contains a Pytorch implementation of monocular depth estimation 
 
 <br/>
 Change the values of depthdatalist, rawdatalist, valdepthdatalist, valrawdatalist and their respective elements in data_config.py.
-<br/><br/>
+<br/><br/><br/>
 
 
 
