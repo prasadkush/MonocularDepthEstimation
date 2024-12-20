@@ -2,7 +2,7 @@
 
 <br/>
 This repository contains a Pytorch implementation of monocular depth estimation encoder decoder network based on the network in NeWCRF paper [1]. The encoder is based on Swin Transformer and the decoder is based on the one in [1] taking query and key values from encoder layers. A PPM head is used between the encoder and decoder layers. The network was trained on a subset of the Kitti dataset.
-<br/>
+<br/><br/>
 
 ## Features of model in depthmodel.py
 
