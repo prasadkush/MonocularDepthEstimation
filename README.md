@@ -11,6 +11,7 @@ This repository contains a Pytorch implementation of monocular depth estimation 
 2. The encoder output is passed to a PPM head [3]. 
 3. The decoder consists of 4 layers each layer consisting of Neural Window Fully Connected CRF based on the decoder in NeWCRF[1].
 <br/>
+
 ## Instructions for training:
 
 <br/>
@@ -20,6 +21,7 @@ Change the values of depthdatalist, rawdatalist, valdepthdatalist, valrawdatalis
  Run python main.py.
 ```
 <br/>
+
 ## Results on Kitti dataset 
 
 <br/>
@@ -30,8 +32,8 @@ The model in depthmodel.py was trained on a subset (1846 + augmented images) of 
 | Metric  | Value |
 | --- | --- |
 | absolute relative error on validation dataset| 0.2034 |
-
 <br/>
+
 ## References
 
 <br/>
